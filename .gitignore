@@ -1,0 +1,5 @@
+# Generated dashboard snapshots bake in real CURRENT.md content (business
+# status, in-progress decisions, blockers across the whole ecosystem).
+# This repo is public — never commit a generated snapshot.
+dashboard.html
+dashboard-*.html
