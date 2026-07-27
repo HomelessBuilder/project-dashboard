@@ -83,6 +83,15 @@ everything past that is refinement.
 
 ## Backend Roadmap (Do Not Build Now — Plan Only)
 
+**Update, 2026-07-27:** Item 1 below is done. devlog-engine landed, became
+the sole system of record (dual-write to `CURRENT.md`/`DEVLOG.md` dropped
+2026-07-23), and `generate.py` was swapped over to its CLI the same day
+this note was added — exactly the swap this section predicted, on the
+sequencing it recommended (data-source swap only, card design unchanged).
+See `CLAUDE.md` for the current architecture. Item 2 (ai-dev-platform
+serving this live via MCP) is still future — that project remains
+pre-build.
+
 The prototype intentionally has no backend. But two backends are *already
 planned elsewhere in the ecosystem* for exactly this kind of data, and this
 project's own docs already name it as their eventual consumer — don't
