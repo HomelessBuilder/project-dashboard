@@ -14,11 +14,16 @@
 
 Self-contained by design (this project's own CLAUDE.md: no dependency on
 other projects) -- the live-session read logic is duplicated in miniature
-rather than imported from session-recovery.
+rather than imported from session-recovery. Same reasoning applies to the
+findings-website card link added 2026-08-02: a tiny local slugify() helper
+duplicates findings-website/generate.py's own, rather than importing it,
+and the link only checks whether a static file already exists on disk --
+never reads findings-website's database or code.
 
 Read-only against devlog.db (via the CLI, never the file directly),
 ~/.claude/sessions, and a handful of other local files (DECISION-LOG.md,
-disk usage) -- writes only index.html and dashboard.html in this directory.
+disk usage, findings-website/site/*.html's existence) -- writes only
+index.html and dashboard.html in this directory.
 
 monitor's CONCERNS.md is deliberately NOT surfaced in the attention section
 -- checked 2026-07-27 and it hasn't been updated since 2026-07-02, consistent
@@ -42,6 +47,7 @@ from pathlib import Path
 HOME = Path.home()
 SESSIONS_DIR = HOME / ".claude" / "sessions"
 DEVLOG_DIR = HOME / "devlog-engine"
+FINDINGS_SITE_DIR = HOME / "findings-website" / "site"
 OUT_PATH = Path(__file__).parent / "dashboard.html"
 HUB_PATH = Path(__file__).parent / "index.html"
 
@@ -71,6 +77,7 @@ details { margin-top: 0.5rem; }
 summary { cursor: pointer; color: #8993a3; font-size: 0.8rem; }
 .what { white-space: pre-wrap; font-size: 0.85rem; margin-top: 0.4rem; color: #c9c3b7; }
 .placeholder { color: #5b6472; font-size: 0.85rem; font-style: italic; }
+.findings-link { display: inline-block; margin-top: 0.5rem; font-size: 0.8rem; }
 """
 
 HUB_STYLE = """
@@ -147,6 +154,22 @@ def match_project(cwd, projects):
     return best
 
 
+def slugify(name):
+    """Matches findings-website/generate.py's own slugify() exactly -- the
+    two need to produce identical filenames for the link below to resolve.
+    Duplicated rather than imported, per this file's self-containment
+    convention (see module docstring)."""
+    return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+
+
+def findings_link(project):
+    """Returns a file:// URL to this project's findings-website page, or
+    None if no findings page exists for it yet (nothing captured, or
+    findings-website isn't set up at all -- either way, degrade quietly)."""
+    page = FINDINGS_SITE_DIR / f"{slugify(project['slug'])}.html"
+    return "file://" + str(page) if page.exists() else None
+
+
 def disk_status():
     """Free space on /, via shutil (no shelling out, no sudo needed)."""
     total, used, free = shutil.disk_usage("/")
@@ -203,6 +226,10 @@ def render_card(project, status_entry, live):
         body = '<div class="placeholder">(no logged status yet)</div>'
         search_blob = f"{name} {slug}"
 
+    link = findings_link(project)
+    if link:
+        body += f'\n  <a class="findings-link" href="{html.escape(link)}">Findings &rarr;</a>'
+
     return (
         f'<div class="{css_class}" data-search="{html.escape(search_blob.lower())}">'
         f'<div class="hdr"><span class="proj">{html.escape(name)}</span>'
@@ -237,6 +264,9 @@ def build_tiles():
          "Every idea captured, from any session, without interrupting the work it came from.", None),
         ("Monitor Reports", "file://" + str(HOME / "monitor" / "reports"),
          "Passive cron observer's raw reports. CONCERNS.md is currently stale (nothing since 2026-07-02) -- judge it yourself.", None),
+        ("Findings", "file://" + str(FINDINGS_SITE_DIR / "index.html"),
+         "Durable per-project findings -- decisions, ideas, architecture notes -- captured so they outlive scrollback.",
+         "regenerate: python3 ~/findings-website/generate.py"),
     ]
 
 
